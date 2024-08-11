@@ -376,3 +376,23 @@ game:GetService("RunService").RenderStepped:Connect(function()
 end)
 
 return ESP
+local function isPlayerAlive(player)
+    if player.Character then
+        local humanoid = player.Character:FindFirstChild("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            return true
+        end
+    end
+    return false
+end
+-- Assuming you have a function to check if a player is alive
+local function isPlayerAlive(player)
+    -- Implement your logic to check if the player is alive
+    return player.Character and player.Character.Humanoid.Health > 0
+end
+
+-- Check if the player is alive before rendering the ESP
+if isPlayerAlive(player) then
+    -- Render the ESP for the player
+    -- Your ESP rendering code here
+end
