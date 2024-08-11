@@ -30,9 +30,7 @@ local WorldToViewportPoint = cam.WorldToViewportPoint
 -- Functions --
 local function Draw(obj, props)
     local new = Drawing.new(obj)
-
-    props = props or {}
-    for i, v in pairs(props) do
+    for i, v in pairs(props or {}) do
         new[i] = v
     end
     return new
@@ -43,7 +41,6 @@ function ESP:GetTeam(p)
     if ov then
         return ov(p)
     end
-
     return p and p.Team
 end
 
@@ -52,7 +49,6 @@ function ESP:IsTeamMate(p)
     if ov then
         return ov(p)
     end
-
     return self:GetTeam(p) == self:GetTeam(plr)
 end
 
@@ -70,7 +66,6 @@ function ESP:GetPlrFromChar(char)
     if ov then
         return ov(char)
     end
-
     return plrs:GetPlayerFromCharacter(char)
 end
 
@@ -97,14 +92,14 @@ end
 
 function ESP:AddObjectListener(parent, options)
     local function NewListener(c)
-        if type(options.Type) == "string" and c:IsA(options.Type) or options.Type == nil then
-            if type(options.Name) == "string" and c.Name == options.Name or options.Name == nil then
+        if (type(options.Type) == "string" and c:IsA(options.Type)) or options.Type == nil then
+            if (type(options.Name) == "string" and c.Name == options.Name) or options.Name == nil then
                 if not options.Validator or options.Validator(c) then
                     local box = ESP:Add(c, {
-                        PrimaryPart = type(options.PrimaryPart) == "string" and c:WaitForChild(options.PrimaryPart) or type(options.PrimaryPart) == "function" and options.PrimaryPart(c),
-                        Color = type(options.Color) == "function" and options.Color(c) or options.Color,
+                        PrimaryPart = (type(options.PrimaryPart) == "string" and c:WaitForChild(options.PrimaryPart)) or (type(options.PrimaryPart) == "function" and options.PrimaryPart(c)),
+                        Color = (type(options.Color) == "function" and options.Color(c)) or options.Color,
                         ColorDynamic = options.ColorDynamic,
-                        Name = type(options.CustomName) == "function" and options.CustomName(c) or options.CustomName,
+                        Name = (type(options.CustomName) == "function" and options.CustomName(c)) or options.CustomName,
                         IsEnabled = options.IsEnabled,
                         RenderInNil = options.RenderInNil
                     })
@@ -175,7 +170,7 @@ function boxBase:Update()
     -- Calculations --
     local cf = self.PrimaryPart.CFrame
     if ESP.FaceCamera then
-        cf = CFrame.new(cf.p, cam.CFrame.p)
+        cf = CFrame.new(cf.Position, cam.CFrame.Position)
     end
     local size = self.Size
     local locs = {
@@ -189,10 +184,10 @@ function boxBase:Update()
 
     -- Update Box
     if ESP.Boxes then
-        local TopLeft, Vis1 = WorldToViewportPoint(cam, locs.TopLeft.p)
-        local TopRight, Vis2 = WorldToViewportPoint(cam, locs.TopRight.p)
-        local BottomLeft, Vis3 = WorldToViewportPoint(cam, locs.BottomLeft.p)
-        local BottomRight, Vis4 = WorldToViewportPoint(cam, locs.BottomRight.p)
+        local TopLeft, Vis1 = WorldToViewportPoint(locs.TopLeft.Position)
+        local TopRight, Vis2 = WorldToViewportPoint(locs.TopRight.Position)
+        local BottomLeft, Vis3 = WorldToViewportPoint(locs.BottomLeft.Position)
+        local BottomRight, Vis4 = WorldToViewportPoint(locs.BottomRight.Position)
 
         if self.Components.Quad then
             if Vis1 or Vis2 or Vis3 or Vis4 then
@@ -212,7 +207,7 @@ function boxBase:Update()
 
     -- Update Names
     if ESP.Names then
-        local TagPos, Vis5 = WorldToViewportPoint(cam, locs.TagPos.p)
+        local TagPos, Vis5 = WorldToViewportPoint(locs.TagPos.Position)
 
         if Vis5 then
             self.Components.Name.Visible = true
@@ -222,7 +217,7 @@ function boxBase:Update()
 
             self.Components.Distance.Visible = true
             self.Components.Distance.Position = Vector2.new(TagPos.X, TagPos.Y + 14)
-            self.Components.Distance.Text = math.floor((cam.CFrame.p - cf.p).magnitude) .. "m away"
+            self.Components.Distance.Text = math.floor((cam.CFrame.Position - cf.Position).magnitude) .. "m away"
             self.Components.Distance.Color = color
         else
             self.Components.Name.Visible = false
@@ -235,7 +230,7 @@ function boxBase:Update()
 
     -- Update Tracers
     if ESP.Tracers then
-        local TorsoPos, Vis6 = WorldToViewportPoint(cam, locs.Torso.p)
+        local TorsoPos, Vis6 = WorldToViewportPoint(locs.Torso.Position)
 
         if Vis6 then
             self.Components.Tracer.Visible = true
@@ -262,7 +257,7 @@ function ESP:Add(obj, options)
         Size = options.Size or ESP.BoxSize,
         Object = obj,
         Player = options.Player or plrs:GetPlayerFromCharacter(obj),
-        PrimaryPart = options.PrimaryPart or obj.ClassName == "Model" and (obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")) or obj:IsA("BasePart") and obj,
+        PrimaryPart = options.PrimaryPart or (obj.ClassName == "Model" and (obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart"))) or (obj:IsA("BasePart") and obj),
         Components = {},
         IsEnabled = options.IsEnabled,
         Temporary = options.Temporary,
@@ -296,7 +291,6 @@ function ESP:Add(obj, options)
         Size = 19,
         Visible = self.Enabled and self.Names
     })
-
     box.Components["Tracer"] = Draw("Line", {
         Thickness = ESP.Thickness,
         Color = box.Color,
@@ -320,6 +314,13 @@ function ESP:Add(obj, options)
     if hum then
         hum.Died:Connect(function()
             if ESP.AutoRemove ~= true then
+                box:Remove()
+            end
+        end)
+        
+        -- Added check for health reaching zero
+        hum:GetPropertyChangedSignal("Health"):Connect(function()
+            if hum.Health <= 0 then
                 box:Remove()
             end
         end)
